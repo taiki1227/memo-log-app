@@ -1,0 +1,86 @@
+import { connect } from "@tidbcloud/serverless";
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8"
+    }
+  });
+}
+
+function getConnection(env) {
+  const url = env.TIDB_URL || env.DATABASE_URL;
+
+  if (!url) {
+    throw new Error("TIDB_URL is not set.");
+  }
+
+  return connect({ url });
+}
+
+function countChars(text) {
+  return Array.from(text || "").length;
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
+
+  try {
+    if (request.method === "GET") {
+      return await getNotes(env);
+    }
+
+    if (request.method === "POST") {
+      return await createNote(request, env);
+    }
+
+    return json({ error: "Method Not Allowed" }, 405);
+  } catch (error) {
+    return json({ error: error.message || "Internal Server Error" }, 500);
+  }
+}
+
+async function getNotes(env) {
+  const conn = getConnection(env);
+
+  const result = await conn.execute(`
+    SELECT
+      id,
+      title,
+      body,
+      char_count,
+      created_at,
+      updated_at
+    FROM memo_log.notes
+    ORDER BY updated_at DESC, id DESC
+    LIMIT 100
+  `);
+
+  return json({
+    notes: result.rows || []
+  });
+}
+
+async function createNote(request, env) {
+  const conn = getConnection(env);
+  const input = await request.json();
+
+  const title = String(input.title || "").trim() || "無題";
+  const body = String(input.body || "");
+  const charCount = countChars(body);
+
+  await conn.execute(
+    `
+      INSERT INTO memo_log.notes
+        (title, body, char_count)
+      VALUES
+        (?, ?, ?)
+    `,
+    [title, body, charCount]
+  );
+
+  return json({
+    ok: true
+  });
+}

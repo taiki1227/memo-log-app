@@ -1,0 +1,10 @@
+{
+  "name": "memo-log-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Simple memo app with Cloudflare Pages Functions and TiDB Cloud",
+  "dependencies": {
+    "@tidbcloud/serverless": "latest"
+  }
+}
