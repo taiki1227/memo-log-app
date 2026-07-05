@@ -12,6 +12,7 @@ const cancelButton = document.getElementById("cancelButton");
 const reloadButton = document.getElementById("reloadButton");
 
 const USER_KEY_STORAGE = "memo_log_user_key";
+let currentNotes = [];
 
 function getUserKey() {
   const existing = localStorage.getItem(USER_KEY_STORAGE);
@@ -72,6 +73,112 @@ function formatDate(value) {
   return String(value).replace("T", " ").slice(0, 19);
 }
 
+function getDateForFileName() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mi = String(now.getMinutes()).padStart(2, "0");
+
+  return `${yyyy}${mm}${dd}_${hh}${mi}`;
+}
+
+function safeFileName(text) {
+  const name = String(text || "memo")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 50);
+
+  return name || "memo";
+}
+
+function buildNoteText(note) {
+  return [
+    `タイトル：${note.title || "無題"}`,
+    "",
+    note.body || "",
+    "",
+    "----",
+    `文字数：${note.char_count || 0}`,
+    `作成：${formatDate(note.created_at)}`,
+    `更新：${formatDate(note.updated_at)}`,
+    "Memo Log"
+  ].join("\n");
+}
+
+function buildAllNotesText(notes) {
+  return notes
+    .map((note, index) => {
+      return [
+        `# ${index + 1}. ${note.title || "無題"}`,
+        "",
+        note.body || "",
+        "",
+        `文字数：${note.char_count || 0}`,
+        `作成：${formatDate(note.created_at)}`,
+        `更新：${formatDate(note.updated_at)}`,
+        ""
+      ].join("\n");
+    })
+    .join("\n==============================\n\n");
+}
+
+function downloadTextFile(fileName, text) {
+  const blob = new Blob([text], {
+    type: "text/plain;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+function downloadNote(id) {
+  const note = currentNotes.find((item) => String(item.id) === String(id));
+
+  if (!note) {
+    setMessage("ダウンロード対象のメモが見つかりません。", true);
+    return;
+  }
+
+  const fileName = `${safeFileName(note.title)}_${getDateForFileName()}.txt`;
+  downloadTextFile(fileName, buildNoteText(note));
+  setMessage("TXTファイルをダウンロードしました。");
+}
+
+function downloadAllNotes() {
+  if (currentNotes.length === 0) {
+    setMessage("ダウンロードできるメモがありません。", true);
+    return;
+  }
+
+  const fileName = `memo-log-all_${getDateForFileName()}.txt`;
+  downloadTextFile(fileName, buildAllNotesText(currentNotes));
+  setMessage("全メモのTXTファイルをダウンロードしました。");
+}
+
+function setupDownloadAllButton() {
+  if (!reloadButton || document.getElementById("downloadAllButton")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.id = "downloadAllButton";
+  button.className = "secondary";
+  button.textContent = "全メモTXT保存";
+  button.addEventListener("click", downloadAllNotes);
+
+  reloadButton.insertAdjacentElement("afterend", button);
+}
+
 function resetForm() {
   noteIdInput.value = "";
   titleInput.value = "";
@@ -105,6 +212,7 @@ async function loadNotes() {
 }
 
 function renderNotes(notes) {
+  currentNotes = notes;
   notesCount.textContent = `${notes.length}件`;
 
   if (notes.length === 0) {
@@ -126,6 +234,7 @@ function renderNotes(notes) {
           </div>
 
           <div class="note-actions">
+            <button type="button" class="secondary" data-action="download" data-id="${note.id}">TXT保存</button>
             <button type="button" class="secondary" data-action="edit" data-id="${note.id}">編集</button>
             <button type="button" class="danger" data-action="delete" data-id="${note.id}">削除</button>
           </div>
@@ -177,6 +286,10 @@ notesList.addEventListener("click", async (event) => {
 
   const id = button.dataset.id;
   const action = button.dataset.action;
+
+  if (action === "download") {
+    downloadNote(id);
+  }
 
   if (action === "edit") {
     await startEdit(id);
@@ -238,6 +351,8 @@ async function deleteNote(id) {
     setMessage(error.message, true);
   }
 }
+
+setupDownloadAllButton();
 
 cancelButton.addEventListener("click", resetForm);
 reloadButton.addEventListener("click", loadNotes);
