@@ -1,5 +1,112 @@
 import { connect } from "@tidbcloud/serverless";
-function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}})}function getConnection(env){const url=env.TIDB_URL;if(!url)throw new Error("TiDB connection URL is not set.");return connect({url})}function countChars(text){return Array.from(text||"").length}function getRows(result){if(Array.isArray(result?.rows))return result.rows;if(Array.isArray(result?.results))return result.results;if(Array.isArray(result?.data))return result.data;if(Array.isArray(result?.[0]))return result[0];if(Array.isArray(result))return result;return[]}
-export async function onRequest(context){const{request,env}=context;try{if(request.method==="GET")return await getNotes(env);if(request.method==="POST")return await createNote(request,env);return json({error:"Method Not Allowed"},405)}catch(error){return json({error:error.message||"Internal Server Error"},500)}}
-async function getNotes(env){const conn=getConnection(env);const result=await conn.execute(`SELECT id,title,body,char_count,created_at,updated_at FROM memo_log.notes ORDER BY updated_at DESC, id DESC LIMIT 100`);return json({notes:getRows(result)})}
-async function createNote(request,env){const conn=getConnection(env);const input=await request.json();const title=String(input.title||"").trim()||"無題";const body=String(input.body||"");const charCount=countChars(body);await conn.execute(`INSERT INTO memo_log.notes (title, body, char_count) VALUES (?, ?, ?)`,[title,body,charCount]);return json({ok:true})}
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store"
+    }
+  });
+}
+
+function getConnection(env) {
+  const url = env.TIDB_URL;
+
+  if (!url) {
+    throw new Error("TiDB connection URL is not set.");
+  }
+
+  return connect({ url });
+}
+
+function countChars(text) {
+  return Array.from(text || "").length;
+}
+
+function getRows(result) {
+  if (Array.isArray(result?.rows)) return result.rows;
+  if (Array.isArray(result?.results)) return result.results;
+  if (Array.isArray(result?.data)) return result.data;
+  if (Array.isArray(result?.[0])) return result[0];
+  if (Array.isArray(result)) return result;
+  return [];
+}
+
+function getUserKey(request) {
+  const userKey = request.headers.get("X-Memo-User-Key");
+
+  if (!userKey || !/^[A-Za-z0-9_-]{16,80}$/.test(userKey)) {
+    throw new Error("Invalid user key.");
+  }
+
+  return userKey;
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
+
+  try {
+    if (request.method === "GET") {
+      return await getNotes(request, env);
+    }
+
+    if (request.method === "POST") {
+      return await createNote(request, env);
+    }
+
+    return json({ error: "Method Not Allowed" }, 405);
+  } catch (error) {
+    return json({ error: error.message || "Internal Server Error" }, 500);
+  }
+}
+
+async function getNotes(request, env) {
+  const conn = getConnection(env);
+  const userKey = getUserKey(request);
+
+  const result = await conn.execute(
+    `
+      SELECT
+        id,
+        title,
+        body,
+        char_count,
+        created_at,
+        updated_at
+      FROM memo_log.notes
+      WHERE user_key = ?
+      ORDER BY updated_at DESC, id DESC
+      LIMIT 100
+    `,
+    [userKey]
+  );
+
+  return json({
+    notes: getRows(result)
+  });
+}
+
+async function createNote(request, env) {
+  const conn = getConnection(env);
+  const userKey = getUserKey(request);
+  const input = await request.json();
+
+  const title = String(input.title || "").trim() || "無題";
+  const body = String(input.body || "");
+  const charCount = countChars(body);
+
+  await conn.execute(
+    `
+      INSERT INTO memo_log.notes
+        (user_key, title, body, char_count)
+      VALUES
+        (?, ?, ?, ?)
+    `,
+    [userKey, title, body, charCount]
+  );
+
+  return json({
+    ok: true
+  });
+}
