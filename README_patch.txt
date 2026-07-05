@@ -1,12 +1,19 @@
-# memo-log user_key patch
+# Memo Log recovery key patch
 
-以下3ファイルをGitHubの同じ場所に上書きしてください。
+以下2ファイルをGitHubの同じ場所に上書きしてください。
 
 - src/app.js
-- functions/api/notes.js
-- functions/api/notes/[id].js
+- src/style.css
 
-この修正で、ブラウザごとに localStorage の `memo_log_user_key` が作成され、
-APIには `X-Memo-User-Key` ヘッダーで送られます。
+追加される機能：
 
-TiDB側では `user_key` カラムでメモを分離します。
+- メモID・復元キーを画面に表示
+- メモIDをコピー
+- メモIDの表示/非表示切り替え
+- 別端末・別ブラウザでメモIDを入力して復元
+- 既存のTXT保存機能も維持
+
+注意：
+
+メモIDを知っている人は、そのIDに紐づくメモを表示・編集・削除できる可能性があります。
+パスワードのように扱い、人には見せないでください。

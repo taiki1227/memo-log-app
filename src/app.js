@@ -31,7 +31,22 @@ function getUserKey() {
   return userKey;
 }
 
-const userKey = getUserKey();
+let userKey = getUserKey();
+
+function setUserKey(nextUserKey) {
+  localStorage.setItem(USER_KEY_STORAGE, nextUserKey);
+  userKey = nextUserKey;
+}
+
+function maskUserKey(value) {
+  if (!value) return "";
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}••••••${value.slice(-6)}`;
+}
+
+function isValidUserKey(value) {
+  return /^[A-Za-z0-9_-]{16,80}$/.test(value || "");
+}
 
 function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
@@ -177,6 +192,103 @@ function setupDownloadAllButton() {
   button.addEventListener("click", downloadAllNotes);
 
   reloadButton.insertAdjacentElement("afterend", button);
+}
+
+function setupRecoveryKeyPanel() {
+  if (document.getElementById("recoveryKeyPanel")) return;
+
+  const app = document.querySelector(".app");
+  const header = document.querySelector(".app-header");
+
+  if (!app || !header) return;
+
+  const section = document.createElement("section");
+  section.id = "recoveryKeyPanel";
+  section.className = "card recovery-card";
+
+  section.innerHTML = `
+    <div class="recovery-head">
+      <div>
+        <h2>メモID・復元キー</h2>
+        <p>PC・スマホ・別ブラウザで同じメモを見るためのIDです。人には見せないでください。</p>
+      </div>
+    </div>
+
+    <div class="recovery-key-box">
+      <code id="recoveryKeyText">${escapeHtml(maskUserKey(userKey))}</code>
+      <div class="recovery-actions">
+        <button type="button" class="secondary" id="copyRecoveryKeyButton">IDコピー</button>
+        <button type="button" class="secondary" id="toggleRecoveryKeyButton">表示</button>
+      </div>
+    </div>
+
+    <details class="restore-area">
+      <summary>別端末のメモIDで復元する</summary>
+      <div class="restore-form">
+        <input
+          type="text"
+          id="restoreKeyInput"
+          placeholder="コピーしたメモIDを貼り付け"
+          autocomplete="off"
+        />
+        <button type="button" id="restoreKeyButton">復元</button>
+      </div>
+      <p class="restore-note">復元すると、このブラウザで表示するメモが入力したIDのメモに切り替わります。</p>
+    </details>
+  `;
+
+  header.insertAdjacentElement("afterend", section);
+
+  const keyText = document.getElementById("recoveryKeyText");
+  const copyButton = document.getElementById("copyRecoveryKeyButton");
+  const toggleButton = document.getElementById("toggleRecoveryKeyButton");
+  const restoreInput = document.getElementById("restoreKeyInput");
+  const restoreButton = document.getElementById("restoreKeyButton");
+
+  let visible = false;
+
+  copyButton?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(userKey);
+      setMessage("メモIDをコピーしました。");
+    } catch (error) {
+      setMessage("コピーに失敗しました。手動で表示してコピーしてください。", true);
+    }
+  });
+
+  toggleButton?.addEventListener("click", () => {
+    visible = !visible;
+    keyText.textContent = visible ? userKey : maskUserKey(userKey);
+    toggleButton.textContent = visible ? "隠す" : "表示";
+  });
+
+  restoreButton?.addEventListener("click", async () => {
+    const nextUserKey = restoreInput.value.trim();
+
+    if (!isValidUserKey(nextUserKey)) {
+      setMessage("メモIDの形式が正しくありません。コピーしたIDをそのまま貼り付けてください。", true);
+      restoreInput.focus();
+      return;
+    }
+
+    if (nextUserKey === userKey) {
+      setMessage("すでにこのメモIDを使用しています。");
+      return;
+    }
+
+    const ok = window.confirm("このブラウザのメモIDを切り替えますか？現在のメモは消えませんが、表示対象が変わります。");
+    if (!ok) return;
+
+    setUserKey(nextUserKey);
+    visible = false;
+    keyText.textContent = maskUserKey(userKey);
+    toggleButton.textContent = "表示";
+    restoreInput.value = "";
+    resetForm();
+    await loadNotes();
+
+    setMessage("メモIDを復元しました。");
+  });
 }
 
 function resetForm() {
@@ -352,6 +464,7 @@ async function deleteNote(id) {
   }
 }
 
+setupRecoveryKeyPanel();
 setupDownloadAllButton();
 
 cancelButton.addEventListener("click", resetForm);
