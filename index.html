@@ -3,15 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Memo Log</title>
+
+  <title>ブラウザメモ帳｜登録不要で使える無料オンラインメモ帳 | Memo Log</title>
+  <meta
+    name="description"
+    content="登録不要でブラウザから使える無料のオンラインメモ帳。複数メモの保存・編集、文字数カウント、TXT保存、メモIDによる別端末での復元に対応しています。"
+  />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f5f7fb" />
+
+  <link rel="canonical" href="https://memo-log-app.pages.dev/" />
   <link rel="stylesheet" href="/src/style.css" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Memo Log" />
+  <meta property="og:title" content="ブラウザで使える無料メモ帳 | Memo Log" />
+  <meta
+    property="og:description"
+    content="登録不要で複数のメモを保存・編集できる無料のブラウザメモ帳です。"
+  />
+  <meta property="og:url" content="https://memo-log-app.pages.dev/" />
+  <meta property="og:locale" content="ja_JP" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="ブラウザで使える無料メモ帳 | Memo Log" />
+  <meta
+    name="twitter:description"
+    content="登録不要で複数のメモを保存・編集できる無料のブラウザメモ帳です。"
+  />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Memo Log",
+    "url": "https://memo-log-app.pages.dev/",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "Web",
+    "inLanguage": "ja",
+    "description": "登録不要でブラウザから使える無料のオンラインメモ帳。複数メモの保存・編集、文字数カウント、TXT保存、メモIDによる別端末での復元に対応しています。",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "JPY"
+    },
+    "featureList": [
+      "複数メモの保存と編集",
+      "文字数カウント",
+      "TXTファイル保存",
+      "メモIDによる別端末での復元"
+    ]
+  }
+  </script>
 </head>
 <body>
   <main class="app">
     <header class="app-header">
       <div>
-        <h1>Memo Log</h1>
-        <p>保存・編集・削除・文字数カウントができるシンプルなメモ帳アプリ</p>
+        <p class="site-name">Memo Log</p>
+        <h1>ブラウザで使える無料メモ帳</h1>
+        <p>
+          登録不要。複数のメモを保存・編集でき、
+          文字数カウントやTXT保存にも対応しています。
+        </p>
+        <div class="feature-tags" aria-label="主な特徴">
+          <span>登録不要</span>
+          <span>複数メモ対応</span>
+          <span>別端末で復元</span>
+        </div>
       </div>
     </header>
 
@@ -19,14 +78,36 @@
       <h2 id="formTitle">新規メモ</h2>
       <form id="memoForm">
         <input type="hidden" id="noteId" />
+
         <label for="title">タイトル</label>
-        <input type="text" id="title" placeholder="例：今日の学び" maxlength="255" required />
+        <input
+          type="text"
+          id="title"
+          placeholder="例：今日の学び"
+          maxlength="255"
+          required
+        />
+
         <label for="body">本文</label>
-        <textarea id="body" rows="8" placeholder="メモを書いてください"></textarea>
-        <div class="form-meta"><span>文字数：<strong id="charCount">0</strong>文字</span></div>
+        <textarea
+          id="body"
+          rows="8"
+          placeholder="メモを書いてください"
+        ></textarea>
+
+        <div class="form-meta">
+          <span>文字数：<strong id="charCount">0</strong>文字</span>
+        </div>
+
         <div class="actions">
           <button type="submit" id="saveButton">保存</button>
-          <button type="button" id="cancelButton" class="secondary hidden">キャンセル</button>
+          <button
+            type="button"
+            id="cancelButton"
+            class="secondary hidden"
+          >
+            キャンセル
+          </button>
         </div>
       </form>
     </section>
@@ -37,13 +118,53 @@
           <h2>メモ一覧</h2>
           <p id="notesCount" class="notes-count">0件</p>
         </div>
-        <button type="button" id="reloadButton" class="secondary">再読み込み</button>
+        <button type="button" id="reloadButton" class="secondary">
+          再読み込み
+        </button>
       </div>
-      <p id="message" class="message"></p>
-      <div id="notesList" class="notes-list"><p class="empty">読み込み中...</p></div>
-      <nav id="pagination" class="pagination" aria-label="メモ一覧のページ"></nav>
+
+      <p id="message" class="message" aria-live="polite"></p>
+      <div id="notesList" class="notes-list">
+        <p class="empty">読み込み中...</p>
+      </div>
+      <nav
+        id="pagination"
+        class="pagination"
+        aria-label="メモ一覧のページ"
+      ></nav>
+    </section>
+
+    <section class="card guide-card" aria-labelledby="aboutMemoLog">
+      <h2 id="aboutMemoLog">ブラウザメモ帳 Memo Logについて</h2>
+      <p class="guide-copy">
+        インストールや会員登録なしで使えるオンラインメモ帳です。
+        タイトルごとにメモを整理し、PCやスマートフォンのブラウザから利用できます。
+      </p>
+
+      <div class="faq-list">
+        <details>
+          <summary>無料で使えますか？</summary>
+          <p>無料で利用でき、会員登録も必要ありません。</p>
+        </details>
+
+        <details>
+          <summary>別の端末でもメモを見られますか？</summary>
+          <p>
+            メモID・復元キーを入力すると、
+            別の端末やブラウザから同じメモを表示できます。
+          </p>
+        </details>
+
+        <details>
+          <summary>作成したメモをファイル保存できますか？</summary>
+          <p>
+            メモごとのTXT保存と、すべてのメモの一括TXT保存に対応しています。
+          </p>
+        </details>
+      </div>
     </section>
   </main>
+
   <script src="/src/app.js"></script>
 </body>
 </html>

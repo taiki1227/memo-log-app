@@ -18,14 +18,42 @@ body {
   margin-bottom: 24px;
 }
 
+.site-name {
+  margin: 0 0 8px;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 32px;
+  line-height: 1.35;
 }
 
-.app-header p {
+.app-header > div > p:not(.site-name) {
+  max-width: 720px;
   margin: 8px 0 0;
   color: #6b7280;
+  line-height: 1.7;
+}
+
+.feature-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.feature-tags span {
+  padding: 5px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .card {
@@ -284,9 +312,44 @@ button.danger {
   line-height: 1.6;
 }
 
+.guide-card {
+  box-shadow: none;
+}
+
+.guide-copy {
+  margin: -4px 0 18px;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.faq-list {
+  display: grid;
+  gap: 8px;
+}
+
+.faq-list details {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 0 4px;
+}
+
+.faq-list summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.faq-list p {
+  margin: 10px 0 4px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
 @media (max-width: 640px) {
   .app {
     margin: 24px auto;
+  }
+
+  .app-header h1 {
+    font-size: 27px;
   }
 
   .card {
