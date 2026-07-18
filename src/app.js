@@ -5,6 +5,7 @@ const bodyInput = document.getElementById("body");
 const charCount = document.getElementById("charCount");
 const notesList = document.getElementById("notesList");
 const notesCount = document.getElementById("notesCount");
+const pagination = document.getElementById("pagination");
 const message = document.getElementById("message");
 const formTitle = document.getElementById("formTitle");
 const saveButton = document.getElementById("saveButton");
@@ -12,7 +13,9 @@ const cancelButton = document.getElementById("cancelButton");
 const reloadButton = document.getElementById("reloadButton");
 
 const USER_KEY_STORAGE = "memo_log_user_key";
+const NOTES_PER_PAGE = 10;
 let currentNotes = [];
+let currentPage = 1;
 
 function getUserKey() {
   const existing = localStorage.getItem(USER_KEY_STORAGE);
@@ -284,6 +287,7 @@ function setupRecoveryKeyPanel() {
     keyText.textContent = maskUserKey(userKey);
     toggleButton.textContent = "表示";
     restoreInput.value = "";
+    currentPage = 1;
     resetForm();
     await loadNotes();
 
@@ -303,6 +307,7 @@ function resetForm() {
 
 async function loadNotes() {
   notesList.innerHTML = '<p class="empty">読み込み中...</p>';
+  pagination.innerHTML = "";
 
   try {
     const res = await apiFetch(`/api/notes?ts=${Date.now()}`, {
@@ -320,7 +325,30 @@ async function loadNotes() {
   } catch (error) {
     notesCount.textContent = "取得エラー";
     notesList.innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`;
+    pagination.innerHTML = "";
   }
+}
+
+function renderPagination(totalPages) {
+  if (totalPages <= 1) {
+    pagination.innerHTML = "";
+    return;
+  }
+
+  pagination.innerHTML = Array.from({ length: totalPages }, (_, index) => {
+    const page = index + 1;
+    const isCurrent = page === currentPage;
+
+    return `
+      <button
+        type="button"
+        class="page-button${isCurrent ? " active" : ""}"
+        data-page="${page}"
+        aria-label="${page}ページ目を表示"
+        ${isCurrent ? 'aria-current="page"' : ""}
+      >${page}</button>
+    `;
+  }).join("");
 }
 
 function renderNotes(notes) {
@@ -329,31 +357,45 @@ function renderNotes(notes) {
 
   if (notes.length === 0) {
     notesList.innerHTML = '<p class="empty">まだメモがありません。</p>';
+    pagination.innerHTML = "";
     return;
   }
 
-  notesList.innerHTML = notes
+  const totalPages = Math.ceil(notes.length / NOTES_PER_PAGE);
+  currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+  const startIndex = (currentPage - 1) * NOTES_PER_PAGE;
+  const pageNotes = notes.slice(startIndex, startIndex + NOTES_PER_PAGE);
+
+  notesList.innerHTML = pageNotes
     .map((note) => {
       return `
-        <article class="note">
-          <h3 class="note-title">${escapeHtml(note.title)}</h3>
-          <div class="note-body">${escapeHtml(note.body)}</div>
+        <details class="note">
+          <summary class="note-summary">
+            <span class="note-title">${escapeHtml(note.title)}</span>
+          </summary>
 
-          <div class="note-meta">
-            <span>${note.char_count}文字</span>
-            <span>作成：${escapeHtml(formatDate(note.created_at))}</span>
-            <span>更新：${escapeHtml(formatDate(note.updated_at))}</span>
-          </div>
+          <div class="note-content">
+            <div class="note-body">${escapeHtml(note.body)}</div>
 
-          <div class="note-actions">
-            <button type="button" class="secondary" data-action="download" data-id="${note.id}">TXT保存</button>
-            <button type="button" class="secondary" data-action="edit" data-id="${note.id}">編集</button>
-            <button type="button" class="danger" data-action="delete" data-id="${note.id}">削除</button>
+            <div class="note-meta">
+              <span>${note.char_count}文字</span>
+              <span>作成：${escapeHtml(formatDate(note.created_at))}</span>
+              <span>更新：${escapeHtml(formatDate(note.updated_at))}</span>
+            </div>
+
+            <div class="note-actions">
+              <button type="button" class="secondary" data-action="download" data-id="${note.id}">TXT保存</button>
+              <button type="button" class="secondary" data-action="edit" data-id="${note.id}">編集</button>
+              <button type="button" class="danger" data-action="delete" data-id="${note.id}">削除</button>
+            </div>
           </div>
-        </article>
+        </details>
       `;
     })
     .join("");
+
+  renderPagination(totalPages);
 }
 
 bodyInput.addEventListener("input", () => {
@@ -384,6 +426,10 @@ memoForm.addEventListener("submit", async (event) => {
       throw new Error(data.error || "保存に失敗しました。");
     }
 
+    if (!id) {
+      currentPage = 1;
+    }
+
     resetForm();
     await loadNotes();
     setMessage(id ? "メモを更新しました。" : "メモを保存しました。");
@@ -410,6 +456,22 @@ notesList.addEventListener("click", async (event) => {
   if (action === "delete") {
     await deleteNote(id);
   }
+});
+
+pagination.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-page]");
+  if (!button) return;
+
+  const nextPage = Number(button.dataset.page);
+  if (!Number.isInteger(nextPage) || nextPage === currentPage) return;
+
+  currentPage = nextPage;
+  renderNotes(currentNotes);
+
+  document.querySelector(".notes-list")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 });
 
 async function startEdit(id) {
